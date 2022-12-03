@@ -1,0 +1,61 @@
+#!/bin/env perl6
+
+use lib <lib ./Classes/>;
+use Notas;
+use Boletins;
+
+sub MAIN (*@ARGS) {
+	my Str $diretorio-principal = $*HOME ~ "/Documents/Notas/";
+	my Str $boletins            = $diretorio-principal ~ "Boletins/";
+	my Notas    $no = Notas.new;
+	my Boletins $bo = Boletins.new;
+
+	shell 'clear';
+	if (!$diretorio-principal.IO.e) {
+		print "\nCriando diretório de base.\n\n";
+		mkdir ($diretorio-principal.IO);
+		mkdir ($boletins.IO);
+	}
+
+	if (@ARGS.elems==0) {
+		say q:to/END/; 
+		[!!!] Para uma listagem de todos os comandos existentes
+		      digite [notas ajuda]
+		END
+		$no.mostra-ajuda;
+	}
+
+	elsif (@ARGS.elems==1) {
+		if    (@ARGS[0] eqv "ajuda")   { $no.mostra-ajuda;  }
+		elsif (@ARGS[0] eqv "nota" )   { $no.adiciona-nota; }
+		elsif (@ARGS[0] eqv "boletim") { $bo.menu-boletim;  }
+		else                           { $bo.erro-comando;  }
+	}	
+
+	elsif (@ARGS.elems==2) {
+		if (@ARGS[1] eqv "rm") {
+			if    (@ARGS[0] eqv "nota")     { $no.remove-nota;    }
+			elsif (@ARGS[0] eqv "boletim")  { $bo.remove-boletim; }
+			else                            { $bo.erro-comando;   }
+		}
+		elsif (@ARGS[1] eqv "vis") {
+			if    (@ARGS[0] eqv "boletim") { $bo.visualiza-boletim; }
+			elsif (@ARGS[0] eqv "notas"  ) { $no.visualiza-notas;   }
+			else                           { $bo.erro-comando;      }
+		}
+		else { $bo.erro-comando; }
+	}
+	else { print "[ERRO]: Quantidade incompatível de comandos\n\n"; }
+
+}
+
+
+
+
+
+
+
+
+
+
+

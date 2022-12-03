@@ -1,14 +1,10 @@
 #!/bin/env perl6
 
-unit class Fonte;
+unit class Notas;
 use Terminal::ANSIColor;
 use Adverb::Eject;
-use Boletim;
-use Term::ReadKey;
 
 has Str $!arquivo-notas = $*HOME.Str ~ "/Documents/Notas/notas.txt";
-has @!lista-boletim = "Criar", "Manipular", "Visualizar", "Apagar", "Trocar alvos", "Limpar";
-
 method mostra-ajuda { say "Mostrando ajuda"; }
 
 #######################################################################################
@@ -33,13 +29,13 @@ method visualiza-notas {
 		print(color('red bold'), "[ATENÇÃO]", color('reset'), 
 		" Não há notas a serem mostradas.\nTerminando...\n");
 		exit;
-	}
+		}
 	say color("bold yellow"), "[NOTAS]", color('reset'); 
 	for $!arquivo-notas.IO.lines -> $linhas { say "#" ~ ++$_ ~ ": " ~ $linhas; }
 	print "\n";
 }
 
-method refaz-notas (@array-notas) {
+method !refaz-notas (@array-notas) {
 #Refaz o arquivo de notas de acordo com a quantidade existente de notas
 #tendo o usuário removido uma delas
 	spurt $!arquivo-notas.IO;
@@ -83,39 +79,9 @@ method remove-nota {
 	my Int $numero-da-nota = -1;
 	$numero-da-nota = self!remove-nota-alto($numero-da-nota, @array-notas);
 	@array-notas[$numero-da-nota - 1]:eject;
-	self.refaz-notas(@array-notas);
+	self!refaz-notas(@array-notas);
 	shell 'clear';
 	self.visualiza-notas;
 	print "Nota removida\n";
 }
-
-#######################################################################################
-#				MANIPULAÇÃO DE BOLETINS				      #
-#######################################################################################
-
-method !menu-boletim-alto (Int:D $contador) { 
-	print "Qual ação executar sobre boletim? \n\n";
-	loop (my $clk = 0; $clk < @!lista-boletim.elems; $clk++) {
-		say " " ~ @!lista-boletim[$clk] if $contador!=$clk;
-		say ">" ~ color("bold green"), @!lista-boletim[$clk], color("reset") if $contador==$clk;
-	}
-}
-
-method menu-boletim {
-	my Int $contador = 0;
-	self!menu-boletim-alto($contador);
-	while (True) {
-		my $entrada = prompt();
-
-
-		if    ($entrada ~~ (Any) ) { "Entrada para cima"; }
-		else {  say $entrada; }
-	}
-}
-
-method erro-comando { say "Comando errado"; }
-
-method remove-boletim { say "Removendo boletim"; }
-
-method visualiza-boletim { say "Visualizando boletim"; }
 
