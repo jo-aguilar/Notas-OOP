@@ -122,6 +122,7 @@ method !visualiza-boletim {
 	my $frase2 = "Boletim não existente e\nnão pode ser visualizado.\n";
 	my $boletim-visualizado = self!reavaliar-string($frase1, $frase2);
 	my $boletim = Boletim.new(:nome-boletim($boletim-visualizado));
+	shell 'clear';
 	$boletim.mostra-boletim;
 }
 
@@ -137,13 +138,80 @@ method !apaga-boletim {
 }
 
 #=========================  TROCA DE ALVOS ENTRE BOLETINS ================================
-method !troca-alvos-boletim() { print "Trocando Boletim\n"; exit     } 
+method !troca-alvos-boletim() { print "Trocando Boletim\n"; exit     }
 
 #=========================== LIMPEZA DE ALVOS DE BOLETINS ================================
-method !limpa-boletim ()      { print "Limpando Boletins\n"; exit    }
+
+method !retorna-lista-txt(@entrada) {
+	my @saida;
+	for @entrada -> $nome {
+		if ($nome.substr($nome.chars-3 .. $nome.chars-1) eq "txt") { @saida.push($nome) };
+	}
+	return @saida;
+}
+
+method !retorna-lista-boletins (@lista) {
+	my @saida;
+	loop (my $i = 0; $i < @lista.elems; $i++) { 
+		my $boletim = Boletim.new(:nome-boletim(@lista[$i]));
+		@saida.push($boletim);
+	}
+	return @saida;
+}
+
+method !limpa-boletim-todos {
+	shell 'clear';
+	print "Limpeza de boletins em curso... \n\n";
+	my @arquivos = dir $!endereco-boletins;
+	@arquivos = self!retorna-lista-txt(@arquivos);
+	my @boletins = self!retorna-lista-boletins(@arquivos);
+	for @boletins -> $elemento { $elemento.limpar-boletim; } ;
+	print color('bold green'), "\n[!!!] ", color('reset'), "Limpeza concluída\n\n";
+	exit;
+}
+
+method !limpa-boletim-apenas-um {
+	shell 'clear';
+	my Str $frase1 = "Boletim a ser limpo: \n>";
+	my Str $frase2 = "Boletim não existe e não pode ser limpo";
+	my $nome-boletim = self!reavaliar-string($frase1, $frase2);
+	my $boletim = Boletim.new(:nome-boletim($nome-boletim));
+	shell 'clear';
+	$boletim.limpar-boletim; say '';
+	print color('bold green'), "[!!!] ", color('reset'), "Limpeza concluída\n\n";
+	exit;
+}
+
+method !printa-menu-limpar (Int:D $entrada, @lista) {
+	if ($entrada == 0) { print ">", color('green bold'), "@lista[0]   ", color('reset'), " @lista[1]", "\n" }
+	else               { print " ", "@lista[0]   ", ">", color('green bold'), "@lista[1]", color('reset'), "\n"}
+	my int $contador = 0;
+	ReadMode('cbreak');
+	my $leitura = ReadKey(0);
+	while (True) {
+		if (ord($leitura) == 67 or (ord($leitura) == 68)) {
+			if $contador == 1 { $contador = 0 }
+			else { $contador = 1 }
+			if ($contador == 0) { shell 'clear';
+					     print ">", color('green bold'), "@lista[0]   ", 
+					     color('reset'), " @lista[1]", "\n" }
+			else               { shell 'clear';
+					     print " ", "@lista[0]   ", ">", color('green bold'), "@lista[1]", 
+					     color('reset'), "\n"}
+		}
+		if (ord($leitura) == 10 ) { 
+			ReadMode('normal');
+			if ($contador == 0) { self!limpa-boletim-todos     }
+			else                { self!limpa-boletim-apenas-um }
+		}
+		$leitura = ReadKey(0);
+	}
+}
+
+method !limpa-boletim { self!printa-menu-limpar(0, ["limpar todos", "apenas um"]) }
 
 #=================================== MENU PRINCIPAL ========================================
-method !menu-boletim-alto (Int:D $contador) { 
+method !menu-boletim-alto (Int:D $contador) {
 	print "Qual ação executar sobre boletim? \n\n";
 	loop (my $clk = 0; $clk < @!lista-boletim.elems; $clk++) {
 		say " " ~ @!lista-boletim[$clk] if $contador!=$clk;
