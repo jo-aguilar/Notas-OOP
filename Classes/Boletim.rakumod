@@ -21,23 +21,31 @@ submethod BUILD (:$nome-boletim) {
 	$!nome-boletim = $nome-boletim; 
 }
 
-method !preenche-boletim {
-	my @entradas-boletim;
-	for $!nome-boletim.IO.lines -> $linhas {
-		@entradas-boletim.push($linhas);
+method elems { 
+	self!preenche-boletim;
+	return @!alvos.elems 
 	}
+
+method !preenche-boletim {
+	if @!alvos.elems == 0 {
+		my @entradas-boletim;
+		for $!nome-boletim.IO.lines -> $linhas {
+			@entradas-boletim.push($linhas);
+		}
 	
-	loop (my $i = 0; $i < @entradas-boletim.elems; $i+=2) {
-		@!alvos.push(Alvo.new(:marcador(@entradas-boletim[$i]), 
-			 	      :texto(@entradas-boletim[$i+1])));
+		loop (my $i = 0; $i < @entradas-boletim.elems; $i+=2) {
+			@!alvos.push(Alvo.new(:marcador(@entradas-boletim[$i]), 
+				 	      :texto(@entradas-boletim[$i+1])));
+		}
 	}
 }
 
-method mostra-boletim {
+method mostra-boletim (Bool:D $limpa-tela = True) {
 	use Terminal::ANSIColor;
-	shell 'clear';
+	if $limpa-tela == True { shell 'clear' };
+
 	my $nome = $!nome-boletim.chomp(".txt").split("/");
-	print color('green bold'), "[" ~ $nome[*-1] ~ "]\n", color('reset') ~ "\n" ;
+	print color('green bold'), "[" ~ $nome[*-1] ~ "]\n", color('reset');
 	self!preenche-boletim;
 	for @!alvos -> $alvo {
 		my $marcador = $alvo.marcador eq "-"??" "!!"*";
@@ -45,13 +53,29 @@ method mostra-boletim {
 		      color('green bold'),$marcador, color('reset'), "] ",
 		      $alvo.texto ~ "\n");
 	}
+	say '';
 }
 
-method !nome-boletim { return $!nome-boletim.chomp(".txt").split("/")[*-1] }
+method nome-boletim { return $!nome-boletim.chomp(".txt").split("/")[*-1] }
 
 method !path-boletim { return $!nome-boletim }
 
-method !refaz-boletim {
+method retorna-alvo (Int:D $indice) {
+	#my $novo-indice = $indice-1;
+
+	return @!alvos[$indice];
+}
+
+method remove-alvo (Int:D $indice) {
+	use Adverb::Eject;
+	@!alvos[$indice] :eject;
+}
+
+method adiciona-alvo (Alvo:D $alvo) {
+	@!alvos.push($alvo);
+}
+
+method refaz-boletim {
 	unlink self!path-boletim;
 	spurt self!path-boletim, '',:createonly;
 	for @!alvos {
@@ -65,7 +89,7 @@ method limpar-boletim {
 	loop (my $i = 0; $i < @!alvos.elems; $i++) {
 		if (@!alvos[$i].marcador eq '*') { @!alvos[$i].marcador = '-'; }
 	}
-	my $nome = self!nome-boletim;
+	my $nome = self.nome-boletim;
 	print "Limpando ", color('yellow bold'), "[$nome]", color('reset'), "...\n";
-	self!refaz-boletim;
+	self.refaz-boletim;
 }

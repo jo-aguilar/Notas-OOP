@@ -138,7 +138,55 @@ method !apaga-boletim {
 }
 
 #=========================  TROCA DE ALVOS ENTRE BOLETINS ================================
-method !troca-alvos-boletim() { print "Trocando Boletim\n"; exit     }
+
+method !filtragem-lista ($lista) {
+	my @retorno1 = $lista.split(',' || ' ').sort.flip;
+	my @retorno = @retorno1[0].split(' ');
+	if (@retorno[0] == " ") { @retorno[0] :eject };
+	return @retorno;
+}
+
+method !troca-alvos-boletim-alto ($boletim1, $boletim2, @lista) {
+	if @lista.elems == 0 {
+		print "Lista sem entradas inválidas.\nTerminando...\n";
+		exit;
+	}
+	#print @lista.elems ~ "\n";
+	#print @lista ~ "\n";
+	
+	for @lista -> $i {
+		#if (@lista[$i].key <= 0 or @lista[$i].key > $boletim1.elems) {
+		#	print "Índice #{@lista[$i].key.Int} fora dos limites e não pode ser trocado...\n";
+		#	next;
+	#}
+
+		#else {
+			$boletim2.adiciona-alvo($boletim1.retorna-alvo($i.Int-1));
+			$boletim1.remove-alvo($i.Int-1);
+		#}
+		}
+	$boletim1.refaz-boletim;
+	$boletim2.refaz-boletim;
+}
+
+method !troca-alvos-boletim { 
+	print "Trocando Boletim\n";
+	my Str $inexistente = "Boletim não existe e não pode trocar alvos\n";
+	my $nome-boletim1 = self!reavaliar-string("Primeiro boletim a trocar alvos:\n>", $inexistente);
+	my $nome-boletim2 = self!reavaliar-string("Segundo boletim a trocar alvos:\n>", $inexistente);
+	shell 'clear';
+	my $boletim1 = Boletim.new(:nome-boletim($nome-boletim1));
+	my $boletim2 = Boletim.new(:nome-boletim($nome-boletim2));
+	$boletim1.mostra-boletim(False);
+	$boletim2.mostra-boletim(False);
+	my int $tamanho1 = $boletim1.elems;
+	my Str $indices1 = prompt("Alvos de [{$boletim1.nome-boletim}] a serem trocados:\n>");
+	my @indices2 = self!filtragem-lista($indices1);
+	self!troca-alvos-boletim-alto($boletim1, $boletim2, @indices2);
+	shell 'clear';
+	$boletim1.mostra-boletim(False);
+	$boletim2.mostra-boletim(False);
+}
 
 #=========================== LIMPEZA DE ALVOS DE BOLETINS ================================
 
@@ -183,8 +231,10 @@ method !limpa-boletim-apenas-um {
 }
 
 method !printa-menu-limpar (Int:D $entrada, @lista) {
-	if ($entrada == 0) { print ">", color('green bold'), "@lista[0]   ", color('reset'), " @lista[1]", "\n" }
-	else               { print " ", "@lista[0]   ", ">", color('green bold'), "@lista[1]", color('reset'), "\n"}
+	if ($entrada == 0) { print ">", color('green bold'), "@lista[0]   ",
+		             color('reset'), " @lista[1]", "\n" }
+	else               { print " ", "@lista[0]   ", ">", color('green bold'), 
+	                     "@lista[1]", color('reset'), "\n"}
 	my int $contador = 0;
 	ReadMode('cbreak');
 	my $leitura = ReadKey(0);
@@ -250,12 +300,12 @@ method !seleciona-menu (Int:D $entrada) {
 #funções que fazem tratamentos dos boletins existentes
 	given $entrada {
 		shell 'clear';
-		when 0  { self!cria-boletim;        exit }
-		when 1  { self!manipula-boletim;    exit }
-		when 2  { self!visualiza-boletim;   exit }
-		when 3  { self!apaga-boletim;       exit }
-		when 4  { self!troca-alvos-boletim; exit }
-		when 5  { self!limpa-boletim;       exit }
+		when 0  { self!cria-boletim;        exit } #pronto
+		when 1  { self!manipula-boletim;    exit } 
+		when 2  { self!visualiza-boletim;   exit } #pronto
+		when 3  { self!apaga-boletim;       exit } #pronto
+		when 4  { self!troca-alvos-boletim; exit } 
+		when 5  { self!limpa-boletim;       exit } #pronto
 		default { "Proteção contra erro interno \n".print; exit;}
 	}
 }
