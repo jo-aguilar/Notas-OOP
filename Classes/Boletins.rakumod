@@ -28,9 +28,25 @@ method !reavaliar-string (Str:D $frase1, Str:D $frase2) {
 	}
 }
 
+method !filtragem-lista ($lista) {
+#FAZER FILTRAGEM PARA QUE APENAS NÚMEROS INTEIROS PASSEM
+	my @retorno = $lista.split(rx{" " || ","}).sort.reverse;
+	return @retorno;
+}
+
 #######################################################################################
 #				MANIPULAÇÃO DE BOLETINS				      #
 #######################################################################################
+
+method !boletins-existentes {
+#mostra ao usuário uma lista com todos os boletins existentes válidos que
+#podem ser manipulados de acordo com a opção escolhida
+	my @docs = dir($!endereco-boletins);
+	my @boletins;
+	for @docs -> $i { @boletins.push($i.chomp('.txt').split('/')[*-1]) };
+	for @boletins -> $i { say  color('green bold'), $i, color('reset') };
+	say "";
+}
 
 method !retorna-cond2 () {*}
 
@@ -76,7 +92,6 @@ method !adiciona-alvos-boletim (Str:D $nome-boletim) {
 		Entre com alvos a serem adicionados, e então [ENTER]
 		Para terminar a lista aperte [q] e então [ENTER]
 		END
-		
 	print "\n";
 	my @lista-boletim;
 	my Str $entrada = '';
@@ -93,6 +108,8 @@ method !adiciona-alvos-boletim (Str:D $nome-boletim) {
 method !cria-boletim {
 #Cria um boletim a partir do nome especificado pelo usuário e pela lista
 #de elementos fornecida por ele como alvos do boletim a ser utilizado
+	say "Boletins já criados:";
+	self!boletins-existentes;
 	my $frase1 = "Boletim a ser criado:\n>";
 	my $frase2 = "Boletim já existente.\n";
 	my $nome-boletim = self!valida-nome-boletim;
@@ -107,17 +124,66 @@ method !cria-boletim {
 	print "\nBoletim criado.\nTerminando...\n";
 }
 
-#=================================> NÃO FEITO <=======================================
-method !manipula-boletim ()   { print "Manipulando Boletim\n"; exit  }
-#=================================> NÃO FEITO <=======================================
+#=============================== MANIPULAÇÃO DE BOLETIM ===================================
+
+method !manipula-boletim-alto (Int:D $contador, @lista-manipula) {
+	print "Qual ação executar sobre boletim? \n\n";
+	loop (my $clk = 0; $clk < @lista-manipula.elems; $clk++) {
+		print " " ~ @lista-manipula[$clk] ~ "\t" if $contador!=$clk;
+		print ">" ~ color("bold green"), @lista-manipula[$clk], color("reset") ~ "\t" if $contador==$clk;
+	}
+}
+
+method !manipula-boletim {
+#Faz a escolha do tratamento a fazer nos boletins de acordo com o escolhido pelo
+#usuário durante a navegação do menu
+	ReadMode('cbreak');
+	my @lista-manipula = "atirar ", "adicionar  ", "remover";
+	my Int $quantidade = @lista-manipula.elems;
+	my Int $contador = 0;
+	self!manipula-boletim-alto($contador, @lista-manipula);
+	my $entrada = ReadKey(0);
+
+	while (True) {
+		if (ord($entrada) == 10) { ReadMode('normal'); self!seleciona-manipula($contador); }
+		if (ord($entrada) == 68) {
+			if ($contador == 0 ) { $contador = $quantidade-1; }
+			else { $contador--; }
+			};
+		if (ord($entrada) == 67) {
+			$contador++;
+			if ($contador == $quantidade) {$contador = 0; }
+			};
+		self!manipula-boletim-alto($contador, @lista-manipula);
+		$entrada = ReadKey(0);
+		shell 'clear';
+		}
+}
 
 
+method !atira-alvo { say "Atirando em alvo de boletim"; }
+method !adiciona-alvo { say "Adicionando alvo em boletim"; }
+method !remove-alvo { say "Remove alvo boletim"; }
+
+method !seleciona-manipula (Int:D $entrada) {
+#Direcionador para funções de manipulação de boletins, levando para diferentes
+#funções que fazem tratamentos dos boletins existentes
+	given $entrada {
+		shell 'clear';
+		when 0  { self!atira-alvo;    exit } #pronto
+		when 1  { self!adiciona-alvo; exit } 
+		when 2  { self!remove-alvo;   exit } #pronto
+		default { "Proteção contra erro interno \n".print; exit;}
+	}
+}
 
 #============================= VISUALIZAÇÃO DO BOLETIM ====================================
 
 method !visualiza-boletim {
 #requer ao usuário um boletim a ser visualizado; caso o boletim exista, mostra o 
 #seu conteúdo na tela; caso não exista, informa ao usuário e pede por um nome válido
+	say "Boletins a serem visualizados:";
+	self!boletins-existentes;
 	my $frase1 = "Boletim a ser visualizado:\n>";
 	my $frase2 = "Boletim não existente e\nnão pode ser visualizado.\n";
 	my $boletim-visualizado = self!reavaliar-string($frase1, $frase2);
@@ -130,6 +196,8 @@ method !visualiza-boletim {
 method !apaga-boletim { 
 #caso um boletim exista, remove o boletim de acordo com o nome especificado
 #pelo usuário; caso não exista, avisa ao usuário e pede por um nome válido
+	say "Boletins existentes:";
+	self!boletins-existentes;
 	my $frase1 = "Boletim a ser apagado: \n>";
 	my $frase2 = "Boletim não existente e\nnão pode ser apagado.\n";
 	my $boletim-apagado = self!reavaliar-string($frase1, $frase2);
@@ -139,41 +207,42 @@ method !apaga-boletim {
 
 #=========================  TROCA DE ALVOS ENTRE BOLETINS ================================
 
-method !filtragem-lista ($lista) {
-	my @retorno1 = $lista.split(',' || ' ').sort.flip;
-	my @retorno = @retorno1[0].split(' ');
-	if (@retorno[0] == " ") { @retorno[0] :eject };
-	return @retorno;
-}
-
 method !troca-alvos-boletim-alto ($boletim1, $boletim2, @lista) {
+#Faz a troca entre dois boletins de forma simplificada, servindo como 
+#base para self!troca-alvos-boletim para que esse dê opções e faça
+#verificações de acordo com o desejado pelo usuário
 	if @lista.elems == 0 {
 		print "Lista sem entradas inválidas.\nTerminando...\n";
 		exit;
 	}
-	#print @lista.elems ~ "\n";
-	#print @lista ~ "\n";
+	say @lista;
 	
 	for @lista -> $i {
-		#if (@lista[$i].key <= 0 or @lista[$i].key > $boletim1.elems) {
-		#	print "Índice #{@lista[$i].key.Int} fora dos limites e não pode ser trocado...\n";
-		#	next;
-	#}
-
-		#else {
+		if ($i.Int <= 0 or $i.Int > $boletim1.tamanho) { next }
+		else {
 			$boletim2.adiciona-alvo($boletim1.retorna-alvo($i.Int-1));
 			$boletim1.remove-alvo($i.Int-1);
-		#}
+			}
 		}
 	$boletim1.refaz-boletim;
 	$boletim2.refaz-boletim;
 }
 
-method !troca-alvos-boletim { 
-	print "Trocando Boletim\n";
+method !troca-alvos-boletim {
+#Faz a troca entre dois boletins dando opções e fazendo verificações de
+#acordo com o desejado pelo usuário
+	say "Boletins a serem trocados";
+	self!boletins-existentes;
+	my Str $primeiro    = "Primeiro boletim a trocar alvos:\n>";
+	my Str $segundo     = "Segundo boletim a trocar alvos:\n>";
 	my Str $inexistente = "Boletim não existe e não pode trocar alvos\n";
-	my $nome-boletim1 = self!reavaliar-string("Primeiro boletim a trocar alvos:\n>", $inexistente);
-	my $nome-boletim2 = self!reavaliar-string("Segundo boletim a trocar alvos:\n>", $inexistente);
+	my Str $repetido    = "Boletins não podem conter o mesmo nome\n";
+	my $nome-boletim1 = self!reavaliar-string($primeiro, $inexistente);
+	my $nome-boletim2 = self!reavaliar-string($segundo,  $inexistente);
+	while ($nome-boletim2 eq $nome-boletim1) {	
+		print (color('red bold'), "\n[ATENÇÃO]", color('reset'), $repetido);
+		$nome-boletim2 = self!valida-nome-boletim("\n" ~ $segundo);
+	}
 	shell 'clear';
 	my $boletim1 = Boletim.new(:nome-boletim($nome-boletim1));
 	my $boletim2 = Boletim.new(:nome-boletim($nome-boletim2));
@@ -220,6 +289,8 @@ method !limpa-boletim-todos {
 
 method !limpa-boletim-apenas-um {
 	shell 'clear';
+	say "Boletins que podem ser limpos:";
+	self!boletins-existentes;
 	my Str $frase1 = "Boletim a ser limpo: \n>";
 	my Str $frase2 = "Boletim não existe e não pode ser limpo";
 	my $nome-boletim = self!reavaliar-string($frase1, $frase2);
@@ -304,7 +375,7 @@ method !seleciona-menu (Int:D $entrada) {
 		when 1  { self!manipula-boletim;    exit } 
 		when 2  { self!visualiza-boletim;   exit } #pronto
 		when 3  { self!apaga-boletim;       exit } #pronto
-		when 4  { self!troca-alvos-boletim; exit } 
+		when 4  { self!troca-alvos-boletim; exit } #pronto
 		when 5  { self!limpa-boletim;       exit } #pronto
 		default { "Proteção contra erro interno \n".print; exit;}
 	}

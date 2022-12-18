@@ -21,7 +21,7 @@ submethod BUILD (:$nome-boletim) {
 	$!nome-boletim = $nome-boletim; 
 }
 
-method elems { 
+method tamanho { 
 	self!preenche-boletim;
 	return @!alvos.elems 
 	}
