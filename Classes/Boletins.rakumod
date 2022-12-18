@@ -42,6 +42,7 @@ method !boletins-existentes {
 #mostra ao usuário uma lista com todos os boletins existentes válidos que
 #podem ser manipulados de acordo com a opção escolhida
 	my @docs = dir($!endereco-boletins);
+	if @docs.elems == 0 { return 0 };
 	my @boletins;
 	for @docs -> $i { @boletins.push($i.chomp('.txt').split('/')[*-1]) };
 	for @boletins -> $i { say  color('green bold'), $i, color('reset') };
@@ -160,10 +161,74 @@ method !manipula-boletim {
 		}
 }
 
+method !atira-alvo {
+#Permite que o usuário marque um ou múltiplos alvos em um boletim de
+#acordo com os índices por ele fornecido, desde os índices estejam
+#abaixo da quantidade existente de alvos e sejam acima de 0
+	say "Boletins a serem marcados:";
+	self!boletins-existentes;
+	my $frase1 = "Boletim a ser marcado:\n>";
+	my $frase2 = "Boletim não existente e\nnão pode ser marcado.\n";
+	my $boletim-atirado = self!reavaliar-string($frase1, $frase2);
+	my $boletim = Boletim.new(:nome-boletim($boletim-atirado));
+	my Int $tamanho = $boletim.tamanho;
+	$boletim.mostra-boletim;
+	my Str $lista = prompt("Alvos a serem marcados:\n>");
+	my @lista = self!filtragem-lista($lista);
+	for @lista -> $i {
+		if ($i <= $tamanho and $i > 0) { $boletim.atira-alvo($i.Int-1); }
+		else { next; }
+	}
+	shell 'clear';
+	$boletim.mostra-boletim;
+}
 
-method !atira-alvo { say "Atirando em alvo de boletim"; }
-method !adiciona-alvo { say "Adicionando alvo em boletim"; }
-method !remove-alvo { say "Remove alvo boletim"; }
+method !adiciona-alvo {
+#Permite que o usuário adicione um novo alvo a um boletim já existente, desde
+#que o novo alvo contenha um texto válido com uma quantidade de caracteres
+#diferentes de 0
+	say "Boletins que podem ter adição de alvo:";
+	self!boletins-existentes;
+	my $frase1 = "Boletim a ter adição:\n>";
+	my $frase2 = "Boletim não existente e\nnão pode ter adição de alvo\n";
+	my $boletim-adicionado = self!reavaliar-string($frase1, $frase2);
+	my $boletim = Boletim.new(:nome-boletim($boletim-adicionado));
+	my Int $tamanho = $boletim.tamanho;
+	$boletim.mostra-boletim;
+	my $novo-texto = prompt("Nova a ser adicionada:\n>");
+	while $novo-texto.chars == 0 { $novo-texto = prompt("Alvoo não pode ter texto vazio.\n
+							     Novo alvo a ser adicionado:\n>") };
+	my $alvo = Boletim::Alvo.new(:marcador('-'), :texto($novo-texto));
+	$boletim.adiciona-alvo($alvo);
+	$boletim.refaz-boletim;
+	shell 'clear';
+	$boletim.mostra-boletim;
+}
+
+method !remove-alvo {
+#FAZER CHECAGEM DE TAMANHO DE BOLETIM. CASO ALVOS SEJAM 0 EM VOLUME, APAGAR BOLETIM;
+#Permite que o usuário remova um ou mais alvos de um boletim existente, desde
+#que o alvo esteja dentro de um limite válido entre um alvo ou mais ou o índice
+#esteja abaixo da quantidade de alvos existentes
+	say "Remove alvo boletim"; 
+	say "Boletins a terem alvos removidos:";
+	self!boletins-existentes;
+	my $frase1 = "Boletim a ser marcado:\n>";
+	my $frase2 = "Boletim não existente e\nnão pode ter alvo removido.\n";
+	my $boletim-removido = self!reavaliar-string($frase1, $frase2);
+	my $boletim = Boletim.new(:nome-boletim($boletim-removido));
+	my Int $tamanho = $boletim.tamanho;
+	$boletim.mostra-boletim;
+	my Str $lista = prompt("Alvos a serem marcados:\n>");
+	my @lista = self!filtragem-lista($lista);
+	for @lista -> $i {
+		if ($i <= $tamanho and $i > 0) { $boletim.remove-alvo($i.Int-1); }
+		else { next; }
+	}
+	$boletim.refaz-boletim;
+	shell 'clear';
+	$boletim.mostra-boletim;
+}
 
 method !seleciona-manipula (Int:D $entrada) {
 #Direcionador para funções de manipulação de boletins, levando para diferentes
@@ -192,6 +257,12 @@ method !visualiza-boletim {
 	$boletim.mostra-boletim;
 }
 
+method visualiza-boletim {
+#Acesso externo à self!visualiza-boletim para que o usuário possa fazer uso
+#pelo menu do programa principal
+	self!visualiza-boletim;
+}
+
 #================================= REMOÇÃO DE BOLETIM =====================================
 method !apaga-boletim { 
 #caso um boletim exista, remove o boletim de acordo com o nome especificado
@@ -203,6 +274,12 @@ method !apaga-boletim {
 	my $boletim-apagado = self!reavaliar-string($frase1, $frase2);
 	$boletim-apagado.IO.unlink;
 	print "\nBoletim apagado.\nTerminando...\n";
+}
+
+method remove-boletim { 
+#Acesso externo à função de apagar boletins inteiros para ser acessada
+#a partir do menu principal do programa
+	self!apaga-boletim;
 }
 
 #=========================  TROCA DE ALVOS ENTRE BOLETINS ================================
@@ -277,6 +354,8 @@ method !retorna-lista-boletins (@lista) {
 }
 
 method !limpa-boletim-todos {
+#Faz uma varredura completa por todos os boletins existentes e limpa os seus alvos
+#de forma a não mais conterem nenhuma marcação de checado, caso haja alguma
 	shell 'clear';
 	print "Limpeza de boletins em curso... \n\n";
 	my @arquivos = dir $!endereco-boletins;
@@ -288,6 +367,8 @@ method !limpa-boletim-todos {
 }
 
 method !limpa-boletim-apenas-um {
+#Procura por um boletim específico conforme requerido pelo usuário para que limpe
+#as marcações apenas daquele boletim em específico
 	shell 'clear';
 	say "Boletins que podem ser limpos:";
 	self!boletins-existentes;
@@ -372,7 +453,7 @@ method !seleciona-menu (Int:D $entrada) {
 	given $entrada {
 		shell 'clear';
 		when 0  { self!cria-boletim;        exit } #pronto
-		when 1  { self!manipula-boletim;    exit } 
+		when 1  { self!manipula-boletim;    exit } #pronto
 		when 2  { self!visualiza-boletim;   exit } #pronto
 		when 3  { self!apaga-boletim;       exit } #pronto
 		when 4  { self!troca-alvos-boletim; exit } #pronto

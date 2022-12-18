@@ -48,9 +48,9 @@ method mostra-boletim (Bool:D $limpa-tela = True) {
 	print color('green bold'), "[" ~ $nome[*-1] ~ "]\n", color('reset');
 	self!preenche-boletim;
 	for @!alvos -> $alvo {
-		my $marcador = $alvo.marcador eq "-"??" "!!"*";
+		my $marcador = $alvo.marcador eq "-"??" "!!"✓";
 		print("#{++$_}: [",
-		      color('green bold'),$marcador, color('reset'), "] ",
+		      color('green bold'), $marcador, color('reset'), "] ",
 		      $alvo.texto ~ "\n");
 	}
 	say '';
@@ -61,8 +61,6 @@ method nome-boletim { return $!nome-boletim.chomp(".txt").split("/")[*-1] }
 method !path-boletim { return $!nome-boletim }
 
 method retorna-alvo (Int:D $indice) {
-	#my $novo-indice = $indice-1;
-
 	return @!alvos[$indice];
 }
 
@@ -84,8 +82,14 @@ method refaz-boletim {
 	}
 }
 
+method atira-alvo (Int:D $indice) {
+	@!alvos[$indice].marcador = '*';
+	self.refaz-boletim;
+}
+
 method limpar-boletim {
 	use Terminal::ANSIColor;
+	self!preenche-boletim;
 	loop (my $i = 0; $i < @!alvos.elems; $i++) {
 		if (@!alvos[$i].marcador eq '*') { @!alvos[$i].marcador = '-'; }
 	}
