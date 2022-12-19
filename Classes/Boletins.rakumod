@@ -42,11 +42,19 @@ method !boletins-existentes {
 #mostra ao usuário uma lista com todos os boletins existentes válidos que
 #podem ser manipulados de acordo com a opção escolhida
 	my @docs = dir($!endereco-boletins);
-	if @docs.elems == 0 { return 0 };
 	my @boletins;
 	for @docs -> $i { @boletins.push($i.chomp('.txt').split('/')[*-1]) };
 	for @boletins -> $i { say  color('green bold'), $i, color('reset') };
+	if @boletins.elems == 0 { return 0 };
 	say "";
+}
+
+method !avisa-nao-existentes (Int:D $existentes) {
+	if $existentes == 0 {
+		say "[", color('red bold'), "ATENÇÃO", color('reset'),
+			"] Não existem boletins.\nTerminando...\n";
+		exit;
+	}
 }
 
 method !retorna-cond2 () {*}
@@ -110,7 +118,6 @@ method !cria-boletim {
 #Cria um boletim a partir do nome especificado pelo usuário e pela lista
 #de elementos fornecida por ele como alvos do boletim a ser utilizado
 	say "Boletins já criados:";
-	self!boletins-existentes;
 	my $frase1 = "Boletim a ser criado:\n>";
 	my $frase2 = "Boletim já existente.\n";
 	my $nome-boletim = self!valida-nome-boletim;
@@ -166,7 +173,7 @@ method !atira-alvo {
 #acordo com os índices por ele fornecido, desde os índices estejam
 #abaixo da quantidade existente de alvos e sejam acima de 0
 	say "Boletins a serem marcados:";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my $frase1 = "Boletim a ser marcado:\n>";
 	my $frase2 = "Boletim não existente e\nnão pode ser marcado.\n";
 	my $boletim-atirado = self!reavaliar-string($frase1, $frase2);
@@ -188,7 +195,7 @@ method !adiciona-alvo {
 #que o novo alvo contenha um texto válido com uma quantidade de caracteres
 #diferentes de 0
 	say "Boletins que podem ter adição de alvo:";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my $frase1 = "Boletim a ter adição:\n>";
 	my $frase2 = "Boletim não existente e\nnão pode ter adição de alvo\n";
 	my $boletim-adicionado = self!reavaliar-string($frase1, $frase2);
@@ -212,7 +219,7 @@ method !remove-alvo {
 #esteja abaixo da quantidade de alvos existentes
 	say "Remove alvo boletim"; 
 	say "Boletins a terem alvos removidos:";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my $frase1 = "Boletim a ser marcado:\n>";
 	my $frase2 = "Boletim não existente e\nnão pode ter alvo removido.\n";
 	my $boletim-removido = self!reavaliar-string($frase1, $frase2);
@@ -248,7 +255,7 @@ method !visualiza-boletim {
 #requer ao usuário um boletim a ser visualizado; caso o boletim exista, mostra o 
 #seu conteúdo na tela; caso não exista, informa ao usuário e pede por um nome válido
 	say "Boletins a serem visualizados:";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my $frase1 = "Boletim a ser visualizado:\n>";
 	my $frase2 = "Boletim não existente e\nnão pode ser visualizado.\n";
 	my $boletim-visualizado = self!reavaliar-string($frase1, $frase2);
@@ -268,7 +275,7 @@ method !apaga-boletim {
 #caso um boletim exista, remove o boletim de acordo com o nome especificado
 #pelo usuário; caso não exista, avisa ao usuário e pede por um nome válido
 	say "Boletins existentes:";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my $frase1 = "Boletim a ser apagado: \n>";
 	my $frase2 = "Boletim não existente e\nnão pode ser apagado.\n";
 	my $boletim-apagado = self!reavaliar-string($frase1, $frase2);
@@ -306,10 +313,11 @@ method !troca-alvos-boletim-alto ($boletim1, $boletim2, @lista) {
 }
 
 method !troca-alvos-boletim {
+#CASO SEJA APENAS UM BOLETIM, PREVENIR A TENTATIVA DE TROCA
 #Faz a troca entre dois boletins dando opções e fazendo verificações de
 #acordo com o desejado pelo usuário
 	say "Boletins a serem trocados";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my Str $primeiro    = "Primeiro boletim a trocar alvos:\n>";
 	my Str $segundo     = "Segundo boletim a trocar alvos:\n>";
 	my Str $inexistente = "Boletim não existe e não pode trocar alvos\n";
@@ -357,6 +365,7 @@ method !limpa-boletim-todos {
 #Faz uma varredura completa por todos os boletins existentes e limpa os seus alvos
 #de forma a não mais conterem nenhuma marcação de checado, caso haja alguma
 	shell 'clear';
+	self!avisa-nao-existentes(self!boletins-existentes);
 	print "Limpeza de boletins em curso... \n\n";
 	my @arquivos = dir $!endereco-boletins;
 	@arquivos = self!retorna-lista-txt(@arquivos);
@@ -371,7 +380,7 @@ method !limpa-boletim-apenas-um {
 #as marcações apenas daquele boletim em específico
 	shell 'clear';
 	say "Boletins que podem ser limpos:";
-	self!boletins-existentes;
+	self!avisa-nao-existentes(self!boletins-existentes);
 	my Str $frase1 = "Boletim a ser limpo: \n>";
 	my Str $frase2 = "Boletim não existe e não pode ser limpo";
 	my $nome-boletim = self!reavaliar-string($frase1, $frase2);
