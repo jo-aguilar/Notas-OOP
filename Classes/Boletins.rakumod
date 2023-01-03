@@ -7,7 +7,8 @@ use Adverb::Eject;
 use Boletim;
 use Term::ReadKey:from<Perl5>;
 
-has @!lista-boletim = "Criar", "Manipular", "Visualizar", "Apagar", "Trocar alvos", "Limpar";
+has @!lista-boletim = "Criar", "Manipular", "Copiar", "Visualizar", "Apagar",
+		      "Trocar alvos", "Limpar";
 has $!endereco-boletins = $*HOME ~ "/Documents/Notas/Boletins/".IO;
 
 method mostra-ajuda { say "Mostrando ajuda"; }
@@ -67,7 +68,8 @@ method !valida-nome-boletim (Str:D $frase = "Nome do boletim a ser criado: \n>")
 		exit;
 	}
 	my $nome-boletim = prompt ($frase);
-	$nome-boletim  = ($!endereco-boletins ~ $nome-boletim ~ ".txt").IO;
+	my @nome-boletim = $nome-boletim.words;
+	$nome-boletim  = ($!endereco-boletins ~ @nome-boletim[0] ~ ".txt").IO;
 	return $nome-boletim;
 }
 
@@ -130,6 +132,35 @@ method !cria-boletim {
 	spurt $nome-boletim.Str, '';
 	self!adiciona-alvos-boletim($nome-boletim.Str);
 	print "\nBoletim criado.\nTerminando...\n";
+}
+#=================================== CÓPIA DE BOLETIM =====================================
+
+method !copia-boletim {
+#Copia um novo boletim a partir de um já existente, mantendo seus textos
+#mas limpando seus alvos de forma a não estarem atirados quando criados
+#no novo boletim
+	#verifica se um boletim a ser criado existe, e se não existir, continua pedindo
+	#por um nome válido ao usuário
+	say "Boletins a serem copiados: ";
+	self!boletins-existentes;
+	my Str $frase1 = "Boletim a ser copiado: \n>";
+	my Str $frase2 = "Boletim não existente e não pode ser copiado. ";
+	my Str $frase3 = "Boletim já existente e não pode ser criado";
+	my $nome-boletim = self!reavaliar-string($frase1, $frase2);
+	
+	my Str $conteudo-boletim = $nome-boletim.IO.slurp;
+	$conteudo-boletim.subst-mutate: /\*/, '-', :g;
+
+	my $novo-boletim = self!valida-nome-boletim;
+	while $novo-boletim.e {
+		say color('red bold'), "\n[ATENÇÃO]", color('reset'), $frase3;
+		$novo-boletim = self!valida-nome-boletim;
+	}
+	$novo-boletim.IO.spurt: $conteudo-boletim, :write;
+	say color('yellow bold'), "\n[{$novo-boletim.Str.split(rx{'.'|'/'})[*-2]}] ",
+	    color('reset'), "criado a partir de ", color('yellow bold'), 
+	    "[{$nome-boletim.Str.split(rx{'.'|'/'})[*-2]}]", color('reset'), "...\n",
+	    "Terminando...";
 }
 
 #=============================== MANIPULAÇÃO DE BOLETIM ===================================
@@ -463,10 +494,11 @@ method !seleciona-menu (Int:D $entrada) {
 		shell 'clear';
 		when 0  { self!cria-boletim;        exit } #pronto
 		when 1  { self!manipula-boletim;    exit } #pronto
-		when 2  { self!visualiza-boletim;   exit } #pronto
-		when 3  { self!apaga-boletim;       exit } #pronto
-		when 4  { self!troca-alvos-boletim; exit } #pronto
-		when 5  { self!limpa-boletim;       exit } #pronto
+		when 2  { self!copia-boletim;       exit } #pronto
+		when 3  { self!visualiza-boletim;   exit } #pronto
+		when 4  { self!apaga-boletim;       exit } #pronto
+		when 5  { self!troca-alvos-boletim; exit } #pronto
+		when 6  { self!limpa-boletim;       exit } #pronto
 		default { "Proteção contra erro interno \n".print; exit;}
 	}
 }
